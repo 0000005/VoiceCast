@@ -23,47 +23,29 @@ def deconstruct_passage(text: str, speaker: list, settings: Settings):
     speaker_list_str = str(speaker)
 
     # 使用LLM将文本提取成对话
-    system_prompt_template = """你是一名小说对话提取器，负责从提供的文本中提取对话和旁白，并将结果以 JSON 格式输出。
+    system_prompt_template = """你是一名小说对话提取器，负责从提供的文本中提取对话和旁白，并将结果以指定格式输出。
 # 提取规则：
 1. 角色名匹配：根据"发言者列表"中提供的角色名，判断对话的发言者。
 - 如果文本中出现与角色名含义相近的别称或指代（例如“汪淼”和“汪教授”指代同一人），统一将 speaker 设置为“发言者列表”中的标准角色名。示例：如果"发言者列表"中有“汪淼”，但文本中出现“汪教授”，则将其识别为“汪淼”。
 - 如果文本中出现的角色名不在"发言者列表"中，统一将 speaker 设置为文中提到的人物（可能是无关紧要的配角）。
 2. 旁白处理：对于非对话内容，统一将 speaker 设置为 "旁白"。
 3. text 字段中的内容必须与原文完全一致，不得增删、修改或重写任何文字。
-4. 提取文中所有的对话，包括旁白，不要遗漏任何文本。
-5. 输出格式：按照以下 JSON 数组格式输出结果：
-[
-    {
-        "speaker": "角色名或旁白",
-        "tone":"说话语气"
-        "text": "对话或旁白内容"
-    }
-]
+4. 提取文中所有的对话，包括旁白和叙述性动词（对话动词），不要遗漏任何文本。
+5. 输出格式：按照以下 格式输出结果。每提取一段内容则进行一次换行，其他情况不要换行。
+- [角色]（语气）：[文本]
+6. 除了输出小说内容，不要输出任何其他内容。
 
 # 示例:
 - 发言者列表
 ["汪淼","史强"]
 - 小说文本
 两人继续讨论实验的细节。汪教授说道：“这次的实验非常重要”。“是啊，汪淼，你也太拼了”，史强回答道。
-# 
-[
-    {
-        "speaker": "旁白",
-        "tone": "平静",
-        "text": "两人正在讨论实验的细节"
-    },
-    {
-        "speaker": "汪淼",
-        "tone": "激动",
-        "text": "这次的实验非常重要。"
-    },
-    {
-        "speaker": "史强",
-        "tone": "平静",
-        "text": "是啊，汪淼，你也太拼了。"
-    }
-]
-
+# 输出
+[旁白]（平静）：两人继续讨论实验的细节。
+[旁白]（平静）：汪教授说道：
+[汪淼]（关心）：是啊，汪淼，你也太拼了
+[史强]（激动）：这次的实验非常重要
+[旁白]（平静）：史强回答道：
 """
     user_prompt_template = """
 # 正文
@@ -84,10 +66,10 @@ def deconstruct_passage(text: str, speaker: list, settings: Settings):
         {"role": "user", "content": user_prompt_template},
     ]
     logger.info("LLM request: " + str(messages))
-    llm = _create_llm_instance(settings)
+    llm = _create_llm_instance(settings, json_mode=False)
     response = llm.invoke(messages)
     logger.info("LLM response: " + str(response))
-    return json.loads(response.content)
+    return response.content
 
 
 def filter_person_name(speaker: dict, settings: Settings):
@@ -124,13 +106,22 @@ def filter_person_name(speaker: dict, settings: Settings):
     return json.loads(response.content)
 
 
-def _create_llm_instance(settings: Settings) -> ChatOpenAI:
-    """Create and return a ChatOpenAI instance with the given settings."""
-    return ChatOpenAI(
-        model=settings.model,
-        openai_api_key=settings.apiKey,
-        openai_api_base=settings.baseUrl,
-        max_tokens=8000,
-        temperature=0.5,
-        response_format={"type": "json_object"},
-    )
+def _create_llm_instance(settings: Settings, json_mode: bool = True) -> ChatOpenAI:
+    """Create and return a ChatOpenAI instance with the given settings.
+
+    Args:
+        settings: Settings instance containing LLM configuration
+        json_mode: Whether to enable JSON mode for responses (default: True)
+    """
+    kwargs = {
+        "model": settings.model,
+        "openai_api_key": settings.apiKey,
+        "openai_api_base": settings.baseUrl,
+        "max_tokens": 8000,
+        "temperature": 0.5,
+    }
+
+    if json_mode:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    return ChatOpenAI(**kwargs)
