@@ -1,0 +1,64 @@
+# Python缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 环境配置文件
+*.env
+.venv/
+
+# 日志文件
+*.log
+logs/
+
+# 操作系统相关文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE和编辑器配置文件
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# 临时文件
+*.tmp
+*.swp
+*.bak
+*.orig
+
+# 本地GUI应用可能的输出文件
+*.db
+*.sqlite3
+*.exe
+*.app
+*.dll
+*.so
+
+# 前端相关文件
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+
+# 包管理器文件
+yarn-debug.log*
+yarn-error.log*
+npm-debug.log*
+.pnpm-debug.log*
+.yarn-integrity
+
+# 环境变量和本地配置
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 前端工具配置文件
+.eslintcache
+.stylelintcache
+.browserslistrc
+/server/env
